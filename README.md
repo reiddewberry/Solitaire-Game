@@ -1,1 +1,1 @@
-"# Solitaire-Game" 
+- AI gen Solitaire-Game for family 
