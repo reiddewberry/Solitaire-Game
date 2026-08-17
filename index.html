@@ -1,0 +1,1913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Klondike Solitaire Master</title>
+  <style>
+    :root {
+      --felt-color: #1b633e;
+      --felt-gradient: radial-gradient(circle at 50% 30%, #257e50 0%, #154c2f 70%, #0d331f 100%);
+      --card-width: 86px;
+      --card-height: 124px;
+      --card-radius: 8px;
+      --card-font-size: 15px;
+      --card-suit-size: 16px;
+      --card-center-size: 34px;
+      --overlap-down: 18px;
+      --overlap-up: 30px;
+      --accent-gold: #f5c842;
+      --accent-gold-hover: #ffd966;
+      --ui-bg: rgba(12, 24, 18, 0.88);
+      --ui-border: rgba(255, 255, 255, 0.16);
+      --text-light: #f9fafb;
+      --text-muted: #9ca3af;
+      --shadow-card: 0 4px 10px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+      --shadow-drag: 0 16px 32px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.35);
+      --anim-speed: 0.2s;
+    }
+
+    [data-theme="blue"] {
+      --felt-color: #143e6d;
+      --felt-gradient: radial-gradient(circle at 50% 30%, #1d5594 0%, #10345d 70%, #08203c 100%);
+    }
+    [data-theme="burgundy"] {
+      --felt-color: #5c1824;
+      --felt-gradient: radial-gradient(circle at 50% 30%, #822233 0%, #4a131d 70%, #2e0b12 100%);
+    }
+    [data-theme="slate"] {
+      --felt-color: #1e293b;
+      --felt-gradient: radial-gradient(circle at 50% 30%, #334155 0%, #1e293b 70%, #0f172a 100%);
+    }
+    [data-theme="wood"] {
+      --felt-color: #4a2e18;
+      --felt-gradient: radial-gradient(circle at 50% 30%, #6e4627 0%, #3e2614 70%, #24160a 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background: var(--felt-gradient);
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: manipulation;
+    }
+
+    header {
+      background: var(--ui-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--ui-border);
+      padding: 8px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.18rem;
+      letter-spacing: 0.4px;
+      color: #fff;
+    }
+
+    .brand .logo-icon {
+      font-size: 1.4rem;
+      background: linear-gradient(135deg, #f5c842, #e5a919);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    }
+
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 6px 16px;
+      border-radius: 24px;
+      border: 1px solid var(--ui-border);
+      font-size: 0.88rem;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+
+    .stat-val {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #fff;
+    }
+
+    .actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button.btn {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 6px 13px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.86rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      outline: none;
+    }
+
+    button.btn:hover {
+      background: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.38);
+      transform: translateY(-1px);
+    }
+
+    button.btn:active {
+      transform: translateY(0);
+    }
+
+    button.btn-primary {
+      background: linear-gradient(135deg, #f5c842, #d99b16);
+      color: #1a1a1a;
+      border-color: #f5c842;
+      box-shadow: 0 2px 8px rgba(245, 200, 66, 0.35);
+    }
+
+    button.btn-primary:hover {
+      background: linear-gradient(135deg, #ffd966, #e5a919);
+      box-shadow: 0 4px 12px rgba(245, 200, 66, 0.5);
+    }
+
+    button.btn-auto-win {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      border-color: #34d399;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+      animation: pulseGlow 1.5s infinite alternate;
+    }
+
+    button.btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    button.btn-icon {
+      padding: 6px 9px;
+    }
+
+    #board {
+      flex: 1;
+      max-width: 1040px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 14px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 26px;
+      position: relative;
+    }
+
+    .board-top-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 14px;
+      width: 100%;
+    }
+
+    .top-left-group {
+      grid-column: span 3;
+      display: flex;
+      gap: 14px;
+    }
+
+    .top-right-group {
+      grid-column: 4 / span 4;
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+    }
+
+    .tableau-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 14px;
+      width: 100%;
+      min-height: 520px;
+    }
+
+    .card-slot {
+      width: 100%;
+      max-width: var(--card-width);
+      aspect-ratio: 5 / 7.2;
+      border-radius: var(--card-radius);
+      border: 2px dashed rgba(255, 255, 255, 0.22);
+      background: rgba(0, 0, 0, 0.18);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .card-slot.drag-over {
+      border-color: var(--accent-gold);
+      background: rgba(245, 200, 66, 0.2);
+      box-shadow: 0 0 16px rgba(245, 200, 66, 0.45);
+    }
+
+    .card-slot .slot-hint-icon {
+      font-size: 28px;
+      opacity: 0.28;
+      color: #fff;
+    }
+
+    .tableau-column {
+      position: relative;
+      min-height: calc(var(--card-height) + 240px);
+    }
+
+    #wasteSlot {
+      position: relative;
+      width: 100%;
+      max-width: calc(var(--card-width) + 40px);
+    }
+
+    .card {
+      position: absolute;
+      width: 100%;
+      max-width: var(--card-width);
+      aspect-ratio: 5 / 7.2;
+      border-radius: var(--card-radius);
+      box-shadow: var(--shadow-card);
+      cursor: pointer;
+      transition: transform var(--anim-speed) ease, box-shadow var(--anim-speed) ease, opacity var(--anim-speed) ease;
+      touch-action: none;
+      transform-origin: center center;
+    }
+
+    .card.face-up {
+      background: #ffffff;
+      color: #111;
+      border: 1px solid rgba(0, 0, 0, 0.16);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 5px 6px;
+    }
+
+    .card.red { color: #dc2626; }
+    .card.black { color: #18181b; }
+
+    .card-corner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+      font-weight: 800;
+      font-size: var(--card-font-size);
+      width: fit-content;
+    }
+
+    .card-corner.top-left { align-self: flex-start; }
+    .card-corner.bottom-right {
+      align-self: flex-end;
+      transform: rotate(180deg);
+    }
+
+    .card-corner .suit-mini {
+      font-size: var(--card-suit-size);
+      margin-top: 1px;
+    }
+
+    .card-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .card-center-art {
+      font-size: var(--card-center-size);
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card.face-card .card-center-art {
+      font-size: 26px;
+      font-weight: 900;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.04);
+      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.06);
+    }
+
+    .card.face-down {
+      border: 2px solid #ffffff;
+      background: #1d4ed8;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-back-pattern {
+      width: calc(100% - 6px);
+      height: calc(100% - 6px);
+      border-radius: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background-color: #1e40af;
+      background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 2px, transparent 0, transparent 8px),
+                        repeating-linear-gradient(-45deg, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 2px, transparent 0, transparent 8px);
+    }
+
+    [data-cardback="red"] .card.face-down { background: #b91c1c; }
+    [data-cardback="red"] .card-back-pattern {
+      background-color: #991b1b;
+      background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 2px, transparent 0, transparent 8px),
+                        repeating-linear-gradient(-45deg, rgba(255,255,255,0.18) 0, rgba(255,255,255,0.18) 2px, transparent 0, transparent 8px);
+    }
+
+    [data-cardback="gold"] .card.face-down { background: #d97706; }
+    [data-cardback="gold"] .card-back-pattern {
+      background-color: #92400e;
+      background-image: radial-gradient(circle, rgba(254, 243, 199, 0.35) 15%, transparent 16%),
+                        radial-gradient(circle, rgba(254, 243, 199, 0.35) 15%, transparent 16%);
+      background-size: 14px 14px;
+      background-position: 0 0, 7px 7px;
+    }
+
+    [data-cardback="dark"] .card.face-down { background: #27272a; }
+    [data-cardback="dark"] .card-back-pattern {
+      background-color: #18181b;
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 6px),
+                        repeating-linear-gradient(90deg, rgba(255,255,255,0.1) 0, rgba(255,255,255,0.1) 1px, transparent 0, transparent 6px);
+    }
+
+    [data-cardback="emerald"] .card.face-down { background: #047857; }
+    [data-cardback="emerald"] .card-back-pattern {
+      background-color: #064e3b;
+      background-image: repeating-linear-gradient(45deg, rgba(167, 243, 208, 0.22) 0, rgba(167, 243, 208, 0.22) 2px, transparent 0, transparent 8px),
+                        repeating-linear-gradient(-45deg, rgba(167, 243, 208, 0.22) 0, rgba(167, 243, 208, 0.22) 2px, transparent 0, transparent 8px);
+    }
+
+    .card.dragging {
+      opacity: 0.95;
+      box-shadow: var(--shadow-drag);
+      transform: scale(1.05);
+      z-index: 1000 !important;
+      pointer-events: none;
+    }
+
+    .card.hint-highlight {
+      animation: pulseGlow 1.2s infinite alternate ease-in-out;
+      z-index: 99 !important;
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        box-shadow: 0 0 6px #f5c842, 0 0 12px #f5c842;
+        transform: translateY(-2px);
+      }
+      100% {
+        box-shadow: 0 0 18px #ffd966, 0 0 28px #ffd966;
+        transform: translateY(-6px);
+      }
+    }
+
+    .stock-reload-icon {
+      position: absolute;
+      font-size: 32px;
+      color: rgba(255, 255, 255, 0.6);
+      cursor: pointer;
+      display: none;
+      transition: transform 0.2s;
+    }
+    .stock-reload-icon:hover {
+      transform: rotate(45deg) scale(1.1);
+      color: #fff;
+    }
+    .stock-reload-icon.visible {
+      display: block;
+    }
+
+    .shortcuts-bar {
+      text-align: center;
+      font-size: 0.76rem;
+      color: rgba(255, 255, 255, 0.45);
+      margin-top: auto;
+      padding-bottom: 12px;
+    }
+    .kbd {
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #e5e7eb;
+      font-family: monospace;
+      font-size: 0.72rem;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      max-width: 440px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.7);
+      transform: translateY(20px) scale(0.95);
+      transition: transform 0.25s ease;
+      color: #fff;
+    }
+
+    .modal-overlay.active .modal-card {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #fff; }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .setting-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .setting-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .setting-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    select.setting-select {
+      background: rgba(0,0,0,0.45);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .theme-swatches {
+      display: flex;
+      gap: 8px;
+    }
+
+    .theme-swatch {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
+    }
+    .theme-swatch.active {
+      border-color: #fff;
+      transform: scale(1.15);
+      box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    #winCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1500;
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      :root {
+        --card-width: 48px;
+        --card-height: 70px;
+        --card-radius: 5px;
+        --card-font-size: 11px;
+        --card-suit-size: 11px;
+        --card-center-size: 20px;
+        --overlap-down: 11px;
+        --overlap-up: 18px;
+      }
+      header { padding: 6px 10px; }
+      .brand span { display: none; }
+      .stats-bar {
+        padding: 4px 8px;
+        gap: 10px;
+        font-size: 0.8rem;
+      }
+      .btn span.btn-text { display: none; }
+      #board {
+        padding: 10px 6px 20px;
+        gap: 14px;
+      }
+      .board-top-row, .tableau-row { gap: 6px; }
+      .top-left-group, .top-right-group { gap: 6px; }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      :root {
+        --card-width: 68px;
+        --card-height: 98px;
+        --card-font-size: 13px;
+        --card-suit-size: 13px;
+        --card-center-size: 26px;
+        --overlap-down: 15px;
+        --overlap-up: 24px;
+      }
+    }
+  </style>
+</head>
+<body data-theme="green" data-cardback="blue">
+  <header>
+    <div class="brand">
+      <span class="logo-icon">♠♥</span>
+      <span>Solitaire Master</span>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Score</span>
+        <span class="stat-val" id="scoreDisplay">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Moves</span>
+        <span class="stat-val" id="movesDisplay">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Time</span>
+        <span class="stat-val" id="timerDisplay">00:00</span>
+      </div>
+    </div>
+
+    <div class="actions-bar">
+      <button class="btn btn-primary" id="btnNewGame" title="Start New Game (N)">
+        <span>🔄</span> <span class="btn-text">New Game</span>
+      </button>
+      <button class="btn" id="btnUndo" disabled title="Undo last move (Z)">
+        <span>↩️</span> <span class="btn-text">Undo</span>
+      </button>
+      <button class="btn" id="btnHint" title="Get a hint (H)">
+        <span>💡</span> <span class="btn-text">Hint</span>
+      </button>
+      <button class="btn btn-auto-win" id="btnAutoComplete" style="display: none;" title="Auto-complete remaining cards (A)">
+        <span>⚡</span> <span class="btn-text">Auto Win</span>
+      </button>
+      <button class="btn btn-icon" id="btnSettings" title="Settings & Themes (S)">
+        <span>⚙️</span>
+      </button>
+      <button class="btn btn-icon" id="btnStats" title="Statistics">
+        <span>📊</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="board">
+    <div class="board-top-row">
+      <div class="top-left-group">
+        <div class="card-slot" id="stockSlot" title="Stock Pile (Click or Space)">
+          <span class="stock-reload-icon" id="stockReloadIcon">🔄</span>
+        </div>
+        <div class="card-slot" id="wasteSlot" title="Waste Pile"></div>
+      </div>
+      <div class="top-right-group">
+        <div class="card-slot foundation-slot" id="foundation-0" data-suit="♠" title="Spades Foundation (Ace to King)">
+          <span class="slot-hint-icon">♠</span>
+        </div>
+        <div class="card-slot foundation-slot" id="foundation-1" data-suit="♥" title="Hearts Foundation (Ace to King)">
+          <span class="slot-hint-icon">♥</span>
+        </div>
+        <div class="card-slot foundation-slot" id="foundation-2" data-suit="♣" title="Clubs Foundation (Ace to King)">
+          <span class="slot-hint-icon">♣</span>
+        </div>
+        <div class="card-slot foundation-slot" id="foundation-3" data-suit="♦" title="Diamonds Foundation (Ace to King)">
+          <span class="slot-hint-icon">♦</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tableau-row">
+      <div class="tableau-column" id="tableau-0"><div class="card-slot"></div></div>
+      <div class="tableau-column" id="tableau-1"><div class="card-slot"></div></div>
+      <div class="tableau-column" id="tableau-2"><div class="card-slot"></div></div>
+      <div class="tableau-column" id="tableau-3"><div class="card-slot"></div></div>
+      <div class="tableau-column" id="tableau-4"><div class="card-slot"></div></div>
+      <div class="tableau-column" id="tableau-5"><div class="card-slot"></div></div>
+      <div class="tableau-column" id="tableau-6"><div class="card-slot"></div></div>
+    </div>
+
+    <div class="shortcuts-bar">
+      Keyboard Shortcuts: <span class="kbd">Space</span> Draw Stock &nbsp;|&nbsp; <span class="kbd">Z</span> Undo &nbsp;|&nbsp; <span class="kbd">H</span> Hint &nbsp;|&nbsp; <span class="kbd">N</span> New Game &nbsp;|&nbsp; <span class="kbd">A</span> Auto Win
+    </div>
+  </main>
+
+  <canvas id="winCanvas"></canvas>
+
+  <div class="modal-overlay" id="winModal">
+    <div class="modal-card" style="text-align: center;">
+      <div style="font-size: 3.2rem; margin-bottom: 6px;">🏆</div>
+      <h2 style="font-size: 1.85rem; margin-bottom: 8px; color: var(--accent-gold);">Splendid Victory!</h2>
+      <p style="color: var(--text-muted); margin-bottom: 22px;">You successfully cleared the board!</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: rgba(0,0,0,0.35); padding: 16px; border-radius: 10px; margin-bottom: 22px; border: 1px solid var(--ui-border);">
+        <div>
+          <div class="stat-label">Final Score</div>
+          <div class="stat-val" id="winScore" style="font-size: 1.25rem; margin-top: 4px;">0</div>
+        </div>
+        <div>
+          <div class="stat-label">Time</div>
+          <div class="stat-val" id="winTime" style="font-size: 1.25rem; margin-top: 4px;">00:00</div>
+        </div>
+        <div>
+          <div class="stat-label">Moves</div>
+          <div class="stat-val" id="winMoves" style="font-size: 1.25rem; margin-top: 4px;">0</div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btnPlayAgain" style="width: 100%; justify-content: center; padding: 11px; font-size: 1.05rem;">
+        Play Another Deal
+      </button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Game Settings</div>
+        <button class="modal-close" data-close="settingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Draw Mode</div>
+            <div class="setting-desc">Number of cards drawn per stock click</div>
+          </div>
+          <select class="setting-select" id="settingDrawMode">
+            <option value="1">Draw 1 (Standard Classic)</option>
+            <option value="3">Draw 3 (Tournament Vegas)</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Table Felt Theme</div>
+            <div class="setting-desc">Background cloth & atmosphere</div>
+          </div>
+          <div class="theme-swatches" id="feltSwatches">
+            <div class="theme-swatch active" data-felt="green" style="background: #1b633e;" title="Emerald Green"></div>
+            <div class="theme-swatch" data-felt="blue" style="background: #143e6d;" title="Casino Blue"></div>
+            <div class="theme-swatch" data-felt="burgundy" style="background: #5c1824;" title="Crimson Velvet"></div>
+            <div class="theme-swatch" data-felt="slate" style="background: #1e293b;" title="Midnight Slate"></div>
+            <div class="theme-swatch" data-felt="wood" style="background: #4a2e18;" title="Warm Oak"></div>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Card Back Design</div>
+            <div class="setting-desc">Backside pattern for face-down cards</div>
+          </div>
+          <select class="setting-select" id="settingCardBack">
+            <option value="blue">Royal Blue Lattice</option>
+            <option value="red">Classic Crimson</option>
+            <option value="gold">Gold Mandala</option>
+            <option value="dark">Obsidian Carbon</option>
+            <option value="emerald">Celtic Emerald</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Audio Effects</div>
+            <div class="setting-desc">Card deal, flip, slide & fanfare audio</div>
+          </div>
+          <select class="setting-select" id="settingSound">
+            <option value="on">Sound Enabled</option>
+            <option value="off">Muted</option>
+          </select>
+        </div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">Smart Tap / Click Move</div>
+            <div class="setting-desc">Single click or tap auto-sends to best spot</div>
+          </div>
+          <select class="setting-select" id="settingAutoMove">
+            <option value="on">Enabled</option>
+            <option value="off">Disabled</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">📊 Statistics</div>
+        <button class="modal-close" data-close="statsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center;">
+            <div class="stat-label">Deals Played</div>
+            <div class="stat-val" id="statGamesPlayed" style="font-size: 1.4rem; margin-top: 4px;">0</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center;">
+            <div class="stat-label">Deals Won</div>
+            <div class="stat-val" id="statGamesWon" style="font-size: 1.4rem; margin-top: 4px;">0</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center;">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-val" id="statWinRate" style="font-size: 1.4rem; margin-top: 4px;">0%</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center;">
+            <div class="stat-label">High Score</div>
+            <div class="stat-val" id="statBestScore" style="font-size: 1.4rem; margin-top: 4px;">0</div>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; text-align: center; grid-column: span 2;">
+            <div class="stat-label">Fastest Win Time</div>
+            <div class="stat-val" id="statBestTime" style="font-size: 1.4rem; margin-top: 4px;">--:--</div>
+          </div>
+        </div>
+        <button class="btn" id="btnResetStats" style="margin-top: 8px; width: 100%; justify-content: center; color: #f87171; border-color: rgba(239, 68, 68, 0.35);">
+          Reset All Statistics
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playCardSlide() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      }
+      playCardFlip() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(460, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.06);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.06);
+      }
+      playFoundation() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [523.25, 659.25];
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.05);
+          gain.gain.setValueAtTime(0.14, now + i * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.05);
+          osc.stop(now + i * 0.05 + 0.15);
+        });
+      }
+      playWin() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.12);
+          gain.gain.setValueAtTime(0.2, now + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.12);
+          osc.stop(now + i * 0.12 + 0.4);
+        });
+      }
+      playBuzzer() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      }
+    }
+
+    const SUITS = ['♠', '♥', '♣', '♦'];
+    const SUIT_COLORS = { '♠': 'black', '♥': 'red', '♣': 'black', '♦': 'red' };
+    const RANKS = [
+      { value: 1, label: 'A' },
+      { value: 2, label: '2' },
+      { value: 3, label: '3' },
+      { value: 4, label: '4' },
+      { value: 5, label: '5' },
+      { value: 6, label: '6' },
+      { value: 7, label: '7' },
+      { value: 8, label: '8' },
+      { value: 9, label: '9' },
+      { value: 10, label: '10' },
+      { value: 11, label: 'J' },
+      { value: 12, label: 'Q' },
+      { value: 13, label: 'K' }
+    ];
+
+    class Card {
+      constructor(suit, rankObj) {
+        this.suit = suit;
+        this.value = rankObj.value;
+        this.label = rankObj.label;
+        this.color = SUIT_COLORS[suit];
+        this.faceUp = false;
+        this.id = `${suit}_${rankObj.label}`;
+      }
+    }
+
+    class SolitaireEngine {
+      constructor() {
+        this.sound = new SoundFX();
+        this.drawCount = 1;
+        this.score = 0;
+        this.moves = 0;
+        this.timerSeconds = 0;
+        this.timerInterval = null;
+        this.isGameActive = false;
+        this.hasWon = false;
+
+        this.stock = [];
+        this.waste = [];
+        this.foundations = [[], [], [], []];
+        this.tableau = [[], [], [], [], [], [], []];
+
+        this.history = [];
+        this.stats = this.loadStats();
+        this.loadSettings();
+
+        this.draggedCards = [];
+        this.dragSource = null;
+      }
+
+      loadSettings() {
+        this.drawCount = parseInt(localStorage.getItem('solitaire_draw_count') || '1', 10);
+        const felt = localStorage.getItem('solitaire_felt') || 'green';
+        const cardback = localStorage.getItem('solitaire_cardback') || 'blue';
+        const sound = localStorage.getItem('solitaire_sound') !== 'off';
+        this.autoMove = localStorage.getItem('solitaire_automove') !== 'off';
+
+        document.body.setAttribute('data-theme', felt);
+        document.body.setAttribute('data-cardback', cardback);
+        this.sound.enabled = sound;
+      }
+
+      loadStats() {
+        const defaultStats = { gamesPlayed: 0, gamesWon: 0, bestScore: 0, bestTime: null };
+        try {
+          const raw = localStorage.getItem('solitaire_stats');
+          return raw ? { ...defaultStats, ...JSON.parse(raw) } : defaultStats;
+        } catch (e) {
+          return defaultStats;
+        }
+      }
+
+      saveStats() {
+        localStorage.setItem('solitaire_stats', JSON.stringify(this.stats));
+      }
+
+      createDeck() {
+        const deck = [];
+        for (const suit of SUITS) {
+          for (const rank of RANKS) {
+            deck.push(new Card(suit, rank));
+          }
+        }
+        for (let i = deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        return deck;
+      }
+
+      startNewGame() {
+        this.stopTimer();
+        this.timerSeconds = 0;
+        this.moves = 0;
+        this.score = 0;
+        this.hasWon = false;
+        this.history = [];
+        this.isGameActive = true;
+
+        const deck = this.createDeck();
+
+        this.stock = [];
+        this.waste = [];
+        this.foundations = [[], [], [], []];
+        this.tableau = [[], [], [], [], [], [], []];
+
+        for (let col = 0; col < 7; col++) {
+          for (let row = 0; row <= col; row++) {
+            const card = deck.pop();
+            card.faceUp = (row === col);
+            this.tableau[col].push(card);
+          }
+        }
+
+        while (deck.length > 0) {
+          const card = deck.pop();
+          card.faceUp = false;
+          this.stock.push(card);
+        }
+
+        this.stats.gamesPlayed++;
+        this.saveStats();
+        this.startTimer();
+        this.sound.playCardSlide();
+        this.render();
+      }
+
+      startTimer() {
+        this.stopTimer();
+        this.timerInterval = setInterval(() => {
+          if (this.isGameActive && !this.hasWon) {
+            this.timerSeconds++;
+            this.updateStatsBar();
+          }
+        }, 1000);
+      }
+
+      stopTimer() {
+        if (this.timerInterval) {
+          clearInterval(this.timerInterval);
+          this.timerInterval = null;
+        }
+      }
+
+      recordHistory(actionDescription = '') {
+        const stateClone = {
+          stock: this.stock.map(c => ({ ...c })),
+          waste: this.waste.map(c => ({ ...c })),
+          foundations: this.foundations.map(f => f.map(c => ({ ...c }))),
+          tableau: this.tableau.map(col => col.map(c => ({ ...c }))),
+          score: this.score,
+          moves: this.moves,
+          desc: actionDescription
+        };
+        this.history.push(stateClone);
+        if (this.history.length > 60) this.history.shift();
+        this.updateUndoButton();
+      }
+
+      undo() {
+        if (this.history.length === 0 || this.hasWon) return;
+        const prev = this.history.pop();
+        this.stock = prev.stock.map(c => Object.assign(new Card(c.suit, { value: c.value, label: c.label }), c));
+        this.waste = prev.waste.map(c => Object.assign(new Card(c.suit, { value: c.value, label: c.label }), c));
+        this.foundations = prev.foundations.map(f => f.map(c => Object.assign(new Card(c.suit, { value: c.value, label: c.label }), c)));
+        this.tableau = prev.tableau.map(col => col.map(c => Object.assign(new Card(c.suit, { value: c.value, label: c.label }), c)));
+        this.score = Math.max(0, prev.score - 5);
+        this.moves++;
+        this.sound.playCardSlide();
+        this.render();
+      }
+
+      updateUndoButton() {
+        const btnUndo = document.getElementById('btnUndo');
+        if (btnUndo) btnUndo.disabled = (this.history.length === 0 || this.hasWon);
+      }
+
+      drawStock() {
+        if (this.hasWon) return;
+        this.recordHistory('Draw Stock');
+        if (this.stock.length === 0) {
+          if (this.waste.length === 0) return;
+          while (this.waste.length > 0) {
+            const card = this.waste.pop();
+            card.faceUp = false;
+            this.stock.push(card);
+          }
+          this.score = Math.max(0, this.score - 20);
+          this.moves++;
+          this.sound.playCardSlide();
+        } else {
+          const toDraw = Math.min(this.drawCount, this.stock.length);
+          for (let i = 0; i < toDraw; i++) {
+            const card = this.stock.pop();
+            card.faceUp = true;
+            this.waste.push(card);
+          }
+          this.moves++;
+          this.sound.playCardFlip();
+        }
+        this.render();
+      }
+
+      canMoveToFoundation(card, foundationIndex) {
+        const foundationSuit = SUITS[foundationIndex];
+        if (card.suit !== foundationSuit) return false;
+        const pile = this.foundations[foundationIndex];
+        if (pile.length === 0) {
+          return card.value === 1;
+        }
+        const topCard = pile[pile.length - 1];
+        return card.value === topCard.value + 1;
+      }
+
+      canMoveToTableau(card, tableauIndex) {
+        const column = this.tableau[tableauIndex];
+        if (column.length === 0) {
+          return card.value === 13;
+        }
+        const topCard = column[column.length - 1];
+        if (!topCard.faceUp) return false;
+        return (card.color !== topCard.color) && (card.value === topCard.value - 1);
+      }
+
+      moveToFoundation(card, sourceInfo) {
+        for (let f = 0; f < 4; f++) {
+          if (this.canMoveToFoundation(card, f)) {
+            this.recordHistory('Move to Foundation');
+            this.removeCardFromSource(sourceInfo);
+            this.foundations[f].push(card);
+            this.score += 10;
+            this.moves++;
+            this.sound.playFoundation();
+            this.afterMoveCheck(sourceInfo);
+            this.render();
+            return true;
+          }
+        }
+        return false;
+      }
+
+      moveToTableau(cards, targetColIndex, sourceInfo) {
+        const leadCard = cards[0];
+        if (this.canMoveToTableau(leadCard, targetColIndex)) {
+          this.recordHistory('Move to Tableau');
+          this.removeCardsFromSource(sourceInfo, cards.length);
+          for (const c of cards) {
+            this.tableau[targetColIndex].push(c);
+          }
+          if (sourceInfo.pileType === 'waste') {
+            this.score += 5;
+          }
+          this.moves++;
+          this.sound.playCardSlide();
+          this.afterMoveCheck(sourceInfo);
+          this.render();
+          return true;
+        }
+        return false;
+      }
+
+      removeCardFromSource(sourceInfo) {
+        if (sourceInfo.pileType === 'waste') {
+          this.waste.pop();
+        } else if (sourceInfo.pileType === 'tableau') {
+          this.tableau[sourceInfo.colIndex].pop();
+        } else if (sourceInfo.pileType === 'foundation') {
+          this.foundations[sourceInfo.foundationIndex].pop();
+          this.score = Math.max(0, this.score - 15);
+        }
+      }
+
+      removeCardsFromSource(sourceInfo, count) {
+        if (sourceInfo.pileType === 'waste') {
+          this.waste.pop();
+        } else if (sourceInfo.pileType === 'tableau') {
+          this.tableau[sourceInfo.colIndex].splice(sourceInfo.cardIndex, count);
+        } else if (sourceInfo.pileType === 'foundation') {
+          this.foundations[sourceInfo.foundationIndex].pop();
+        }
+      }
+
+      afterMoveCheck(sourceInfo) {
+        if (sourceInfo.pileType === 'tableau') {
+          const col = this.tableau[sourceInfo.colIndex];
+          if (col && col.length > 0) {
+            const top = col[col.length - 1];
+            if (!top.faceUp) {
+              top.faceUp = true;
+              this.score += 5;
+              this.sound.playCardFlip();
+            }
+          }
+        }
+        this.checkWinCondition();
+      }
+
+      trySmartMove(card, sourceInfo) {
+        if (!card.faceUp || this.hasWon) return false;
+
+        if (sourceInfo.pileType !== 'foundation') {
+          for (let f = 0; f < 4; f++) {
+            if (this.canMoveToFoundation(card, f)) {
+              return this.moveToFoundation(card, sourceInfo);
+            }
+          }
+        }
+
+        let cardsToMove = [card];
+        if (sourceInfo.pileType === 'tableau') {
+          const col = this.tableau[sourceInfo.colIndex];
+          cardsToMove = col.slice(sourceInfo.cardIndex);
+        }
+
+        for (let col = 0; col < 7; col++) {
+          if (sourceInfo.pileType === 'tableau' && sourceInfo.colIndex === col) continue;
+          if (this.canMoveToTableau(cardsToMove[0], col)) {
+            return this.moveToTableau(cardsToMove, col, sourceInfo);
+          }
+        }
+
+        this.sound.playBuzzer();
+        return false;
+      }
+
+      findHint() {
+        if (this.hasWon) return null;
+
+        if (this.waste.length > 0) {
+          const card = this.waste[this.waste.length - 1];
+          for (let f = 0; f < 4; f++) {
+            if (this.canMoveToFoundation(card, f)) {
+              return {
+                sourceType: 'waste',
+                targetType: 'foundation',
+                targetIndex: f,
+                message: `Move ${card.label}${card.suit} to Foundation`
+              };
+            }
+          }
+        }
+
+        for (let t = 0; t < 7; t++) {
+          const col = this.tableau[t];
+          if (col.length > 0) {
+            const card = col[col.length - 1];
+            if (card.faceUp) {
+              for (let f = 0; f < 4; f++) {
+                if (this.canMoveToFoundation(card, f)) {
+                  return {
+                    sourceType: 'tableau',
+                    colIndex: t,
+                    cardIndex: col.length - 1,
+                    targetType: 'foundation',
+                    targetIndex: f,
+                    message: `Move ${card.label}${card.suit} to Foundation`
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        for (let t = 0; t < 7; t++) {
+          const col = this.tableau[t];
+          for (let c = 0; c < col.length; c++) {
+            const card = col[c];
+            if (card.faceUp) {
+              if (c === 0 && card.value === 13) continue;
+              for (let target = 0; target < 7; target++) {
+                if (target === t) continue;
+                if (this.canMoveToTableau(card, target)) {
+                  return {
+                    sourceType: 'tableau',
+                    colIndex: t,
+                    cardIndex: c,
+                    targetType: 'tableau',
+                    targetIndex: target,
+                    message: `Move ${card.label}${card.suit} to Column ${target + 1}`
+                  };
+                }
+              }
+              break;
+            }
+          }
+        }
+
+        if (this.waste.length > 0) {
+          const card = this.waste[this.waste.length - 1];
+          for (let target = 0; target < 7; target++) {
+            if (this.canMoveToTableau(card, target)) {
+              return {
+                sourceType: 'waste',
+                targetType: 'tableau',
+                targetIndex: target,
+                message: `Move ${card.label}${card.suit} from Waste to Column ${target + 1}`
+              };
+            }
+          }
+        }
+
+        if (this.stock.length > 0 || this.waste.length > 0) {
+          return {
+            sourceType: 'stock',
+            message: 'Draw from the Stock pile'
+          };
+        }
+
+        return null;
+      }
+
+      canAutoComplete() {
+        if (this.hasWon) return false;
+        if (this.stock.length > 0 || this.waste.length > 0) return false;
+        for (const col of this.tableau) {
+          for (const card of col) {
+            if (!card.faceUp) return false;
+          }
+        }
+        return true;
+      }
+
+      autoComplete() {
+        if (!this.canAutoComplete()) return;
+        const interval = setInterval(() => {
+          let moved = false;
+          for (let t = 0; t < 7; t++) {
+            const col = this.tableau[t];
+            if (col.length > 0) {
+              const card = col[col.length - 1];
+              for (let f = 0; f < 4; f++) {
+                if (this.canMoveToFoundation(card, f)) {
+                  this.moveToFoundation(card, { pileType: 'tableau', colIndex: t, cardIndex: col.length - 1 });
+                  moved = true;
+                  break;
+                }
+              }
+            }
+            if (moved) break;
+          }
+          if (!moved || this.hasWon) {
+            clearInterval(interval);
+          }
+        }, 110);
+      }
+
+      checkWinCondition() {
+        const totalFoundationCards = this.foundations.reduce((sum, f) => sum + f.length, 0);
+        if (totalFoundationCards === 52) {
+          this.triggerWin();
+        }
+      }
+
+      triggerWin() {
+        this.hasWon = true;
+        this.isGameActive = false;
+        this.stopTimer();
+        this.sound.playWin();
+
+        this.stats.gamesWon++;
+        if (this.score > this.stats.bestScore) this.stats.bestScore = this.score;
+        if (!this.stats.bestTime || this.timerSeconds < this.stats.bestTime) {
+          this.stats.bestTime = this.timerSeconds;
+        }
+        this.saveStats();
+
+        startWinCascade();
+
+        setTimeout(() => {
+          document.getElementById('winScore').textContent = this.score;
+          document.getElementById('winTime').textContent = this.formatTime(this.timerSeconds);
+          document.getElementById('winMoves').textContent = this.moves;
+          document.getElementById('winModal').classList.add('active');
+        }, 1200);
+      }
+
+      formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+      }
+
+      updateStatsBar() {
+        document.getElementById('scoreDisplay').textContent = this.score;
+        document.getElementById('movesDisplay').textContent = this.moves;
+        document.getElementById('timerDisplay').textContent = this.formatTime(this.timerSeconds);
+
+        const btnAuto = document.getElementById('btnAutoComplete');
+        if (btnAuto) {
+          btnAuto.style.display = this.canAutoComplete() ? 'inline-flex' : 'none';
+        }
+        this.updateUndoButton();
+      }
+
+      render() {
+        this.updateStatsBar();
+
+        const stockSlot = document.getElementById('stockSlot');
+        stockSlot.querySelectorAll('.card').forEach(el => el.remove());
+        const reloadIcon = document.getElementById('stockReloadIcon');
+
+        if (this.stock.length > 0) {
+          reloadIcon.classList.remove('visible');
+          const topCard = this.stock[this.stock.length - 1];
+          const cardEl = this.createCardElement(topCard, { pileType: 'stock' });
+          stockSlot.appendChild(cardEl);
+        } else {
+          reloadIcon.classList.toggle('visible', this.waste.length > 0);
+        }
+
+        const wasteSlot = document.getElementById('wasteSlot');
+        wasteSlot.querySelectorAll('.card').forEach(el => el.remove());
+
+        if (this.waste.length > 0) {
+          const visibleCount = this.drawCount === 3 ? Math.min(3, this.waste.length) : 1;
+          const startIndex = this.waste.length - visibleCount;
+
+          for (let i = startIndex; i < this.waste.length; i++) {
+            const card = this.waste[i];
+            const isTop = (i === this.waste.length - 1);
+            const cardEl = this.createCardElement(card, { pileType: 'waste' }, isTop);
+            const offsetIdx = i - startIndex;
+            cardEl.style.left = `${offsetIdx * 18}px`;
+            cardEl.style.zIndex = offsetIdx + 1;
+            wasteSlot.appendChild(cardEl);
+          }
+        }
+
+        for (let f = 0; f < 4; f++) {
+          const fSlot = document.getElementById(`foundation-${f}`);
+          fSlot.querySelectorAll('.card').forEach(el => el.remove());
+          const pile = this.foundations[f];
+          if (pile.length > 0) {
+            const topCard = pile[pile.length - 1];
+            const cardEl = this.createCardElement(topCard, { pileType: 'foundation', foundationIndex: f }, true);
+            fSlot.appendChild(cardEl);
+          }
+        }
+
+        for (let col = 0; col < 7; col++) {
+          const colEl = document.getElementById(`tableau-${col}`);
+          colEl.querySelectorAll('.card').forEach(el => el.remove());
+          const pile = this.tableau[col];
+
+          let accumulatedOffset = 0;
+          pile.forEach((card, index) => {
+            const isTop = (index === pile.length - 1);
+            const cardEl = this.createCardElement(card, { pileType: 'tableau', colIndex: col, cardIndex: index }, isTop);
+            cardEl.style.top = `${accumulatedOffset}px`;
+            colEl.appendChild(cardEl);
+
+            accumulatedOffset += card.faceUp ? 28 : 18;
+          });
+        }
+      }
+
+      createCardElement(card, sourceInfo, isTopInteractive = true) {
+        const el = document.createElement('div');
+        el.className = `card ${card.faceUp ? 'face-up' : 'face-down'} ${card.color}`;
+        if (['J', 'Q', 'K'].includes(card.label)) el.classList.add('face-card');
+        el.dataset.cardId = card.id;
+
+        if (card.faceUp) {
+          el.innerHTML = `
+            <div class="card-corner top-left">
+              <span>${card.label}</span>
+              <span class="suit-mini">${card.suit}</span>
+            </div>
+            <div class="card-body">
+              <div class="card-center-art">${['J','Q','K'].includes(card.label) ? card.label : card.suit}</div>
+            </div>
+            <div class="card-corner bottom-right">
+              <span>${card.label}</span>
+              <span class="suit-mini">${card.suit}</span>
+            </div>
+          `;
+        } else {
+          el.innerHTML = `<div class="card-back-pattern"></div>`;
+        }
+
+        this.attachCardEvents(el, card, sourceInfo, isTopInteractive);
+        return el;
+      }
+
+      attachCardEvents(el, card, sourceInfo, isTopInteractive) {
+        if (sourceInfo.pileType === 'stock') {
+          el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.drawStock();
+          });
+          return;
+        }
+
+        if (!card.faceUp || !isTopInteractive) return;
+
+        el.addEventListener('dblclick', (e) => {
+          e.stopPropagation();
+          if (this.autoMove) this.trySmartMove(card, sourceInfo);
+        });
+
+        let startX = 0, startY = 0;
+        let isDragging = false;
+        let dragGroup = [];
+        let originalPositions = [];
+
+        const onPointerDown = (e) => {
+          if (e.button !== 0 && e.pointerType === 'mouse') return;
+          e.stopPropagation();
+          this.sound.init();
+
+          startX = e.clientX;
+          startY = e.clientY;
+          isDragging = false;
+
+          if (sourceInfo.pileType === 'tableau') {
+            const col = this.tableau[sourceInfo.colIndex];
+            const cards = col.slice(sourceInfo.cardIndex);
+            const colEl = document.getElementById(`tableau-${sourceInfo.colIndex}`);
+            const allCardEls = Array.from(colEl.querySelectorAll('.card'));
+            dragGroup = allCardEls.slice(sourceInfo.cardIndex);
+            this.draggedCards = cards;
+          } else {
+            dragGroup = [el];
+            this.draggedCards = [card];
+          }
+          this.dragSource = sourceInfo;
+
+          originalPositions = dragGroup.map(cardNode => ({
+            node: cardNode,
+            top: cardNode.style.top,
+            transform: cardNode.style.transform,
+            zIndex: cardNode.style.zIndex
+          }));
+
+          window.addEventListener('pointermove', onPointerMove);
+          window.addEventListener('pointerup', onPointerUp);
+        };
+
+        const onPointerMove = (e) => {
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+
+          if (!isDragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
+            isDragging = true;
+            dragGroup.forEach((node, idx) => {
+              node.classList.add('dragging');
+              node.style.zIndex = 1000 + idx;
+            });
+          }
+
+          if (isDragging) {
+            dragGroup.forEach((node) => {
+              node.style.transform = `translate(${dx}px, ${dy}px)`;
+            });
+          }
+        };
+
+        const onPointerUp = (e) => {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+
+          if (!isDragging) {
+            if (this.autoMove) {
+              this.trySmartMove(card, sourceInfo);
+            }
+            return;
+          }
+
+          dragGroup.forEach((node, idx) => {
+            node.classList.remove('dragging');
+            node.style.transform = '';
+            node.style.zIndex = originalPositions[idx].zIndex;
+          });
+
+          const dropTarget = document.elementFromPoint(e.clientX, e.clientY);
+          let handled = false;
+
+          if (dropTarget) {
+            const fSlot = dropTarget.closest('.foundation-slot');
+            if (fSlot && dragGroup.length === 1) {
+              const fIndex = parseInt(fSlot.id.replace('foundation-', ''), 10);
+              if (this.canMoveToFoundation(card, fIndex)) {
+                this.recordHistory('Move to Foundation');
+                this.removeCardFromSource(sourceInfo);
+                this.foundations[fIndex].push(card);
+                this.score += 10;
+                this.moves++;
+                this.sound.playFoundation();
+                this.afterMoveCheck(sourceInfo);
+                this.render();
+                handled = true;
+              }
+            }
+
+            const tCol = dropTarget.closest('.tableau-column');
+            if (tCol && !handled) {
+              const tIndex = parseInt(tCol.id.replace('tableau-', ''), 10);
+              if (sourceInfo.pileType !== 'tableau' || sourceInfo.colIndex !== tIndex) {
+                if (this.moveToTableau(this.draggedCards, tIndex, sourceInfo)) {
+                  handled = true;
+                }
+              }
+            }
+          }
+
+          if (!handled) {
+            this.render();
+          }
+        };
+
+        el.addEventListener('pointerdown', onPointerDown);
+      }
+    }
+
+    let winAnimId = null;
+    function startWinCascade() {
+      const canvas = document.getElementById('winCanvas');
+      canvas.style.display = 'block';
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+
+      const cards = [];
+      const suits = ['♠', '♥', '♣', '♦'];
+      const colors = { '♠': '#18181b', '♥': '#dc2626', '♣': '#18181b', '♦': '#dc2626' };
+
+      for (let i = 0; i < 52; i++) {
+        const suit = suits[i % 4];
+        cards.push({
+          x: canvas.width * 0.5 + (Math.random() - 0.5) * 240,
+          y: 70 + Math.random() * 90,
+          vx: (Math.random() - 0.5) * 16,
+          vy: -Math.random() * 8 - 2,
+          gravity: 0.45,
+          bounce: -0.78,
+          suit: suit,
+          color: colors[suit],
+          rank: RANKS[i % 13].label,
+          w: 72,
+          h: 104,
+          active: false,
+          delay: i * 3
+        });
+      }
+
+      let frame = 0;
+      function loop() {
+        frame++;
+        cards.forEach(c => {
+          if (frame > c.delay) c.active = true;
+          if (!c.active) return;
+
+          c.vy += c.gravity;
+          c.x += c.vx;
+          c.y += c.vy;
+
+          if (c.y + c.h > canvas.height) {
+            c.y = canvas.height - c.h;
+            c.vy *= c.bounce;
+            c.vx *= 0.95;
+          }
+          if (c.x < 0 || c.x + c.w > canvas.width) {
+            c.vx *= -1;
+          }
+
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(c.x, c.y, c.w, c.h, 7);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = c.color;
+          ctx.font = 'bold 16px sans-serif';
+          ctx.fillText(c.rank, c.x + 8, c.y + 20);
+          ctx.font = '16px sans-serif';
+          ctx.fillText(c.suit, c.x + 8, c.y + 36);
+
+          ctx.font = '30px sans-serif';
+          ctx.fillText(c.suit, c.x + c.w/2 - 11, c.y + c.h/2 + 10);
+        });
+
+        winAnimId = requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    function stopWinCascade() {
+      if (winAnimId) {
+        cancelAnimationFrame(winAnimId);
+        winAnimId = null;
+      }
+      const canvas = document.getElementById('winCanvas');
+      canvas.style.display = 'none';
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const game = new SolitaireEngine();
+      game.startNewGame();
+
+      document.getElementById('btnNewGame').addEventListener('click', () => {
+        stopWinCascade();
+        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
+        game.startNewGame();
+      });
+
+      document.getElementById('btnUndo').addEventListener('click', () => {
+        game.undo();
+      });
+
+      document.getElementById('btnHint').addEventListener('click', () => {
+        document.querySelectorAll('.hint-highlight').forEach(el => el.classList.remove('hint-highlight'));
+        const hint = game.findHint();
+        if (hint) {
+          if (hint.sourceType === 'stock') {
+            document.getElementById('stockSlot').classList.add('hint-highlight');
+            setTimeout(() => document.getElementById('stockSlot').classList.remove('hint-highlight'), 2200);
+          } else if (hint.sourceType === 'waste') {
+            const wasteEl = document.querySelector('#wasteSlot .card:last-child');
+            if (wasteEl) {
+              wasteEl.classList.add('hint-highlight');
+              setTimeout(() => wasteEl.classList.remove('hint-highlight'), 2200);
+            }
+          } else if (hint.sourceType === 'tableau') {
+            const colEl = document.getElementById(`tableau-${hint.colIndex}`);
+            const cards = colEl.querySelectorAll('.card');
+            if (cards[hint.cardIndex]) {
+              cards[hint.cardIndex].classList.add('hint-highlight');
+              setTimeout(() => cards[hint.cardIndex].classList.remove('hint-highlight'), 2200);
+            }
+          }
+        } else {
+          alert('No moves available right now! Try drawing from the Stock or undoing a move.');
+        }
+      });
+
+      document.getElementById('btnAutoComplete').addEventListener('click', () => {
+        game.autoComplete();
+      });
+
+      document.getElementById('stockSlot').addEventListener('click', () => {
+        if (game.stock.length === 0 && game.waste.length > 0) {
+          game.drawStock();
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+        const key = e.key.toLowerCase();
+        if (key === ' ' || e.code === 'Space') {
+          e.preventDefault();
+          game.drawStock();
+        } else if (key === 'z' || ((e.ctrlKey || e.metaKey) && key === 'z')) {
+          e.preventDefault();
+          game.undo();
+        } else if (key === 'h') {
+          document.getElementById('btnHint').click();
+        } else if (key === 'n') {
+          document.getElementById('btnNewGame').click();
+        } else if (key === 'a') {
+          if (game.canAutoComplete()) game.autoComplete();
+        } else if (key === 's') {
+          document.getElementById('btnSettings').click();
+        }
+      });
+
+      const settingsModal = document.getElementById('settingsModal');
+      const statsModal = document.getElementById('statsModal');
+      const winModal = document.getElementById('winModal');
+
+      document.getElementById('btnSettings').addEventListener('click', () => {
+        document.getElementById('settingDrawMode').value = game.drawCount;
+        document.getElementById('settingCardBack').value = document.body.getAttribute('data-cardback') || 'blue';
+        document.getElementById('settingSound').value = game.sound.enabled ? 'on' : 'off';
+        document.getElementById('settingAutoMove').value = game.autoMove ? 'on' : 'off';
+        settingsModal.classList.add('active');
+      });
+
+      document.getElementById('btnStats').addEventListener('click', () => {
+        const stats = game.stats;
+        document.getElementById('statGamesPlayed').textContent = stats.gamesPlayed;
+        document.getElementById('statGamesWon').textContent = stats.gamesWon;
+        const rate = stats.gamesPlayed > 0 ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100) : 0;
+        document.getElementById('statWinRate').textContent = `${rate}%`;
+        document.getElementById('statBestScore').textContent = stats.bestScore;
+        document.getElementById('statBestTime').textContent = stats.bestTime ? game.formatTime(stats.bestTime) : '--:--';
+        statsModal.classList.add('active');
+      });
+
+      document.getElementById('btnPlayAgain').addEventListener('click', () => {
+        winModal.classList.remove('active');
+        stopWinCascade();
+        game.startNewGame();
+      });
+
+      document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.getAttribute('data-close');
+          document.getElementById(targetId).classList.remove('active');
+        });
+      });
+
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) overlay.classList.remove('active');
+        });
+      });
+
+      document.getElementById('settingDrawMode').addEventListener('change', (e) => {
+        game.drawCount = parseInt(e.target.value, 10);
+        localStorage.setItem('solitaire_draw_count', game.drawCount);
+        game.render();
+      });
+
+      document.getElementById('settingCardBack').addEventListener('change', (e) => {
+        document.body.setAttribute('data-cardback', e.target.value);
+        localStorage.setItem('solitaire_cardback', e.target.value);
+      });
+
+      document.getElementById('settingSound').addEventListener('change', (e) => {
+        game.sound.enabled = (e.target.value === 'on');
+        localStorage.setItem('solitaire_sound', e.target.value);
+      });
+
+      document.getElementById('settingAutoMove').addEventListener('change', (e) => {
+        game.autoMove = (e.target.value === 'on');
+        localStorage.setItem('solitaire_automove', e.target.value);
+      });
+
+      document.querySelectorAll('.theme-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+          document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+          swatch.classList.add('active');
+          const felt = swatch.getAttribute('data-felt');
+          document.body.setAttribute('data-theme', felt);
+          localStorage.setItem('solitaire_felt', felt);
+        });
+      });
+
+      document.getElementById('btnResetStats').addEventListener('click', () => {
+        if (confirm('Reset all game statistics?')) {
+          game.stats = { gamesPlayed: 0, gamesWon: 0, bestScore: 0, bestTime: null };
+          game.saveStats();
+          document.getElementById('statGamesPlayed').textContent = '0';
+          document.getElementById('statGamesWon').textContent = '0';
+          document.getElementById('statWinRate').textContent = '0%';
+          document.getElementById('statBestScore').textContent = '0';
+          document.getElementById('statBestTime').textContent = '--:--';
+        }
+      });
+    });
+  </script>
+</body>
+</html>
